@@ -9,8 +9,8 @@ In order to exit shell, enter command 'exit'.
   When errors occur, appropriate error messages will be displayed.
   
 
-### Commands
-  Only a very small number of commands have been implemented. The commands are:
+### Built-in Commands
+  Override default implementation of typical Unix commands
   * `bg`
   * `fg`
   * `cd`
