@@ -27,6 +27,81 @@ public class Expression {
     	/** DO NOT create new vars and arrays - they are already created before being sent in
     	 ** to this method - you just need to fill them in.
     	 **/
+	    
+	 expr = expr.replaceAll("\\s+", "");
+    	char[] tokens = expr.toCharArray();
+    	
+    	for (int i = 0; i < tokens.length; i++) 
+    	{
+    		// Check for variable, if next char is [, its an array
+    		if ((tokens[i] >= 'a' && tokens[i] <= 'z') || (tokens[i] >= 'A' && tokens[i] <= 'Z')) 
+    		{
+    			String varName = "";
+    			int j = i;
+    			
+    			while (j < tokens.length && ((tokens[j] >= 'a' && tokens[j] <= 'z') || (tokens[j] >= 'A' && tokens[j] <= 'Z'))) 
+    			{
+    				varName += tokens[j];
+    				j++;
+    			}
+    			i = j - 1;
+    			
+    			if (i == tokens.length - 1) 
+    			{
+        			boolean flag = false;
+    				for (int k = 0; k < vars.size(); k++) 
+        			{
+        				if (vars.get(k).name.equals(varName)) 
+        				{
+        					flag = true;
+        				}
+        			}
+    				if (!flag) 
+    				{
+    					Variable var = new Variable(varName);
+            			vars.add(var);
+    				}
+    			}
+    			else if (i < tokens.length - 1) 
+    			{
+    				if (tokens[i + 1] == '[') 
+        			{
+    					boolean flag = false;
+        				for (int k = 0; k < arrays.size(); k++) 
+            			{
+            				if (arrays.get(k).name.equals(varName)) 
+            				{
+            					flag = true;
+            				}
+            			}
+        				if (!flag) 
+        				{
+        					Array arr = new Array(varName);
+            				arrays.add(arr);
+        				}
+        			}
+        			else 
+        			{
+        				boolean flag = false;
+        				for (int k = 0; k < vars.size(); k++) 
+            			{
+            				if (vars.get(k).name.equals(varName)) 
+            				{
+            					flag = true;
+            				}
+            			}
+        				if (!flag) 
+        				{
+        					Variable var = new Variable(varName);
+                			vars.add(var);
+        				}
+        			}
+    			}
+    		}
+    		
+    	}	
+	    
+	    
     }
     
     /**
@@ -80,6 +155,177 @@ public class Expression {
     evaluate(String expr, ArrayList<Variable> vars, ArrayList<Array> arrays) {
     	/** COMPLETE THIS METHOD **/
     	// following line just a placeholder for compilation
+    	expr = expr.replaceAll("\\s+", "");
+    	char[] tokens = expr.toCharArray();
+    	
+    	Stack<Float> nums = new Stack<Float>();
+    	Stack<Character> ops = new Stack<Character>();
+    	Stack<String> arraysStack = new Stack<String>();
+    	
+    	for (int i = 0; i < tokens.length; i++) 
+    	{
+    		// Check for number
+    		if (tokens[i] >= '0' && tokens[i] <= '9') 
+    		{
+    			String parsedNum = "";
+    			int j = i;
+    			
+    			while (j < tokens.length && tokens[j] >= '0' && tokens[j] <= '9') 
+    			{
+    				parsedNum += tokens[j];
+    				j++;
+    			}
+    			i = j - 1;
+    			nums.push((float)Integer.parseInt(parsedNum));
+    		}
+    		
+    		// Check for variable
+    		else if ((tokens[i] >= 'a' && tokens[i] <= 'z') || (tokens[i] >= 'A' && tokens[i] <= 'Z')) 
+    		{
+    			String varName = "";
+    			int j = i;
+    			
+    			while (j < tokens.length && ((tokens[j] >= 'a' && tokens[j] <= 'z') || (tokens[j] >= 'A' && tokens[j] <= 'Z'))) 
+    			{
+    				varName += tokens[j];
+    				j++;
+    			}
+    			i = j - 1;
+    			
+    			// If its the last index in the array it has to be a variable
+    			if (i == tokens.length - 1) 
+    			{
+    				for (int k = 0; k < vars.size(); k++) 
+        			{
+        				if (varName.equals(vars.get(k).name)) 
+    					{
+        					nums.push((float)vars.get(k).value);
+        					break;
+        				}
+        			}
+    			}
+    			// If it doesn't have a [ after the variable its still a variable
+    			else if (i <= tokens.length - 1 && tokens[i + 1] != '[') 
+    			{
+    				for (int k = 0; k < vars.size(); k++) 
+        			{
+        				if (varName.equals(vars.get(k).name)) 
+    					{
+        					nums.push((float)vars.get(k).value);
+        					break;
+        				}
+        			}
+    			}
+    			// If it has a [ after the variable it has to be an array
+    			else if (i <= tokens.length - 1 && tokens[i + 1] == '[') 
+    			{
+    				for (int k = 0; k < arrays.size(); k++) 
+    				{
+    					if (varName.equals(arrays.get(k).name)) 
+    					{
+    						arraysStack.push(arrays.get(k).name);
+    					}
+    				}
+    			}
+    			
+    		}
+    		// Check for left parenthesis
+    		else if (tokens[i] == '(') 
+    		{
+    			ops.push(tokens[i]);
+    		}
+    		
+    		// Check for right parenthesis
+    		else if (tokens[i] == ')') 
+    		{
+    			while (ops.peek() != '(') 
+    			{
+    				nums.push(doOperation(ops.pop(), nums.pop(), nums.pop()));
+    			}
+    			ops.pop();
+    		}
+    		// Check for left bracket
+    		else if (tokens[i] == '[') 
+    		{
+    			ops.push(tokens[i]);
+    		}
+    		
+    		// Check for right bracket
+    		else if (tokens[i] == ']') 
+    		{
+    			while (ops.peek() != '[') 
+    			{
+    				nums.push(doOperation(ops.pop(), nums.pop(), nums.pop()));
+    			}
+    			float temp = nums.pop();
+				for (int k = 0; k < arrays.size(); k++) 
+				{
+					if (arraysStack.peek().equals(arrays.get(k).name)) 
+					{
+						nums.push((float)arrays.get(k).values[(int) temp]);
+						arraysStack.pop();
+						break;
+					}
+				}
+				ops.pop();
+    		}
+    		
+    		// Check for operator
+    		else if (tokens[i] == '+' || tokens[i] == '-' || tokens[i] == '*' || tokens[i] == '/') 
+    		{
+    			while (!ops.isEmpty() && hasPrecedence(tokens[i], ops.peek())) 
+    			{
+    				nums.push(doOperation(ops.pop(), nums.pop(), nums.pop()));
+    			}
+    			ops.push(tokens[i]);
+    		}
+    	}
+    	
+    	while (!ops.isEmpty())
+    	{
+    		nums.push(doOperation(ops.pop(), nums.pop(), nums.pop()));
+    	}
+    	
+    	return nums.pop();
+    }
+    private static boolean hasPrecedence(char currentOp, char stackOp) 
+    {
+    	if (stackOp == '(' || stackOp == ')') 
+    	{
+    		return false;
+    	}
+    	if (stackOp == '[' || stackOp == ']') 
+    	{
+    		return false;
+    	}
+    	
+    	if ((currentOp == '*' || currentOp == '/') && (stackOp == '+' || stackOp == '-')) 
+    	{
+    		return false;
+    	}
+    	else 
+    	{
+    		return true;
+    	}
+    }
+    private static float doOperation(char op, float num2, float num1) 
+    {
+    	switch(op) 
+    	{
+    	case '+':
+    		return num1 + num2;
+    	case '-': 
+    		return num1 - num2;
+    	case '*':
+    		return num1 * num2;
+    	case '/':
+    		if (num2 == 0) 
+    		{
+    			throw new UnsupportedOperationException("Can't divide by zero");
+    		}
+    		return num1 / num2;
+    	}
     	return 0;
+    }
     }
 }
